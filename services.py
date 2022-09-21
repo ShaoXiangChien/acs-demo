@@ -1,3 +1,4 @@
+from re import search
 from azure.core.credentials import AzureKeyCredential
 from azure.search.documents.indexes import SearchIndexClient
 from azure.search.documents import SearchClient
@@ -25,3 +26,7 @@ adminClient = SearchIndexClient(endpoint=endpoint,
 searchClient = SearchClient(endpoint=endpoint,
                             index_name=indexName,
                             credential=AzureKeyCredential(adminKey))
+
+
+def get_document(id):
+    return searchClient.get_document(key=id)

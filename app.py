@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 
-from setup import searchClient
+from services import *
 
 MODES = ["Simple Query", "Facet Query",
          "Synonym", "Suggestion", "Autocomplete"]
@@ -18,7 +18,7 @@ FIELDS = [
     'LastRenovationDate'
 ]
 OPERATOR_DT = {">=": "ge", "=": "eq", "<=": "le"}
-
+COMPLETE_MODE = ['oneTerm', 'twoTerms', 'oneTermWithContext']
 if __name__ == "__main__":
     st.title("Azure Cognitive Search Demo")
     mode = st.sidebar.selectbox("Choose a mode", MODES)
@@ -97,5 +97,54 @@ if __name__ == "__main__":
 
     elif mode == "Suggestion":
         st.header(mode)
+        search_text = st.text_input("search text")
+        if search_text != "":
+            results = searchClient.suggest(
+                search_text=search_text,
+                suggester_name="sg"
+            )
+
+            res_docs = []
+            st.subheader("Suggested Text")
+            for res in results:
+                hotel = get_document(res['HotelId'])
+                res_docs.append(hotel)
+                st.write("Text: {} for Hotel: {}".format(
+                    repr(res["text"]), hotel["HotelName"]))
+
+            res_df = pd.DataFrame(res_docs)
+            res_df['Address'] = res_df.Address.apply(
+                lambda x: f"{x['StreetAddress']}, {x['City']}, {x['StateProvince']}, {x['Country']}")
+
+            st.subheader("Suggested Search Results")
+            st.dataframe(res_df[FIELDS])
+
     elif mode == "Autocomplete":
         st.header(mode)
+        search_text = st.text_input("search text")
+        complete_mode = st.selectbox("Completion Mode", COMPLETE_MODE)
+        if search_text != "":
+            results = searchClient.autocomplete(
+                search_text=search_text,
+                suggester_name="sg",
+                mode=complete_mode
+            )
+            with st.form("autocomplete"):
+                completions = [res['query_plus_text' if complete_mode ==
+                                   "oneTermWithContext" else "text"] for res in results]
+                query = st.selectbox("Search with", completions)
+
+                submitted = st.form_submit_button("Search")
+
+            if submitted:
+                results = searchClient.search(
+                    search_text=query,
+                    include_total_count=True,
+                )
+
+                st.write(
+                    f"Total Documents Matching Query: {results.get_count()}")
+                result_df = pd.DataFrame([res for res in results])
+                result_df['Address'] = result_df.Address.apply(
+                    lambda x: f"{x['StreetAddress']}, {x['City']}, {x['StateProvince']}, {x['Country']}")
+                st.dataframe(result_df[FIELDS])
