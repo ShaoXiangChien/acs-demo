@@ -1,0 +1,8 @@
+- [range filters](https://learn.microsoft.com/en-us/azure/search/search-query-simple-examples#example-5-range-filters)
+- [Facets syntax](https://learn.microsoft.com/en-us/azure/search/search-faceted-navigation)
+  - `<field>,<param>:<value>`
+  - params:
+    - count: `<integer>`
+    - sort: `<>`
+    - interval: `<integer>`
+    - value: `<list>`
