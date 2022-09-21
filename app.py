@@ -22,6 +22,7 @@ COMPLETE_MODE = ['oneTerm', 'twoTerms', 'oneTermWithContext']
 if __name__ == "__main__":
     st.title("Azure Cognitive Search Demo")
     mode = st.sidebar.selectbox("Choose a mode", MODES)
+    searchClient = create_search_client("hotels-sample-index")
     if mode == "Simple Query":
         st.header(mode)
         with st.form("Search Query"):
@@ -66,31 +67,16 @@ if __name__ == "__main__":
 
     elif mode == "Facet Query":
         st.header(mode)
-        st.subheader("Facet Parameters")
-        cols = st.columns(3)
-        field = cols[0].selectbox("field", FIELDS, 2)
-        param = cols[1].selectbox(
-            "param", ['count', 'sort', 'interval', 'value'], 0)
-        value = cols[2].selectbox("value", ['count', '-count', 'value', '-value']
-                                  ) if param == "sort" else cols[2].text_input("value", "3")
-
+        searchClient = create_search_client("realestate-us-sample-index")
         results = searchClient.search(
             search_text="*",
-            facets=[f'{field},{param}:{value}'],
-            top=5)
-        result_df = pd.DataFrame([res for res in results])
-        if 'Address' in result_df.columns:
-            result_df['Address'] = result_df.Address.apply(
-                lambda x: f"{x['StreetAddress']}, {x['City']}, {x['StateProvince']}, {x['Country']}")
-
+            facets=["city", 'status']
+        )
         facets = results.get_facets()
-
-        st.subheader("Search Results")
-        st.dataframe(result_df[FIELDS])
-
-        st.subheader("Facets")
-        for facet in facets[field]:
-            st.write(facet)
+        city_facet = [
+            f"{fc['value']} ({fc['count']})" for fc in facets['city']]
+        status_facet = [
+            f"{fc['value']} ({fc['count']})" for fc in facets['status']]
 
     elif mode == "Synonym":
         st.header(mode)
@@ -104,20 +90,10 @@ if __name__ == "__main__":
                 suggester_name="sg"
             )
 
-            res_docs = []
+            res_docs = set([res['text'] for res in results])
             st.subheader("Suggested Text")
-            for res in results:
-                hotel = get_document(res['HotelId'])
-                res_docs.append(hotel)
-                st.write("Text: {} for Hotel: {}".format(
-                    repr(res["text"]), hotel["HotelName"]))
-
-            res_df = pd.DataFrame(res_docs)
-            res_df['Address'] = res_df.Address.apply(
-                lambda x: f"{x['StreetAddress']}, {x['City']}, {x['StateProvince']}, {x['Country']}")
-
-            st.subheader("Suggested Search Results")
-            st.dataframe(res_df[FIELDS])
+            for res in res_docs:
+                st.write(res)
 
     elif mode == "Autocomplete":
         st.header(mode)
