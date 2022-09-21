@@ -77,6 +77,17 @@ if __name__ == "__main__":
             f"{fc['value']} ({fc['count']})" for fc in facets['city']]
         status_facet = [
             f"{fc['value']} ({fc['count']})" for fc in facets['status']]
+        
+
+        city_tags = st.multiselect("Cities", city_facet)
+        status_tags = st.multiselect("Status", status_facet)
+
+        df = pd.DataFrame([res for res in results])
+        df = df[FIELDS]
+        df = df[df.city in city_tags]
+        df = df[df.status in status_tags]
+        st.DataFrame(df)
+
 
     elif mode == "Synonym":
         st.header(mode)
