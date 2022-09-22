@@ -9,22 +9,24 @@ MODES = ["Simple Query", "Facet Query",
 FIELDS = ['HotelName', 'City', 'Category', 'ParkingIncluded',
           'Rating', 'Description', 'Tags', 'Address', 'StateProvince', 'LastRenovationDate']
 OPERATOR_DT = {">=": "ge", "=": "eq", "<=": "le"}
-COMPLETE_MODE = ['oneTerm', 'twoTerms', 'oneTermWithContext']
+COMPLETE_MODE = ['oneTerm', 'twoTerms']
 with open("./image_url.json") as fh:
     image_url_dt = json.load(fh)
 
 
-def hotel_component(Name, Rating, Description, City, Tags, search_text):
+def hotel_component(Name, Rating, Description, City, StateProvince, Tags, search_text):
     colored_text = f'<span style="font-family:sans-serif; color:red; font-weight: 700;">{search_text}</span>'
     Name = Name.lower().replace(search_text, colored_text)
     Description = Description.lower().replace(search_text, colored_text)
     City = City.lower().replace(search_text, colored_text)
+    StateProvince = StateProvince.lower().replace(search_text, colored_text)
     for i in range(len(Tags)):
         Tags[i] = Tags[i].replace(search_text, colored_text)
     with st.container():
         st.subheader(Name)
         st.markdown(f"Rating - {Rating}", unsafe_allow_html=True)
         st.markdown(f"City - {City}", unsafe_allow_html=True)
+        st.markdown(f"StateProvince - {StateProvince}", unsafe_allow_html=True)
         st.markdown("Tags - " + ", ".join(Tags), unsafe_allow_html=True)
         st.markdown(Description, unsafe_allow_html=True)
 
@@ -80,7 +82,7 @@ if __name__ == "__main__":
             # st.dataframe(result_df[FIELDS])
             for idx, tmp in result_df.iterrows():
                 hotel_component(tmp['HotelName'], tmp['Rating'],
-                                tmp['Description'], tmp['City'], tmp['Tags'], search_text)
+                                tmp['Description'], tmp['City'], tmp['StateProvince'], tmp['Tags'], search_text)
 
     elif mode == "Facet Query":
         st.header(mode)
@@ -164,8 +166,7 @@ if __name__ == "__main__":
                 mode=complete_mode
             )
             with st.form("autocomplete"):
-                completions = [res['query_plus_text' if complete_mode ==
-                                   "oneTermWithContext" else "text"] for res in results]
+                completions = [res['text'] for res in results]
                 query = st.selectbox("Search with", completions)
 
                 submitted = st.form_submit_button("Search")
@@ -196,11 +197,28 @@ if __name__ == "__main__":
                         st.subheader("Image")
                         st.image(image_url_dt.get(
                             doc['metadata_storage_name']))
+                
+                with st.expander("show detail"):
+                    if len(doc['content']) > 0:
+                        st.subheader("Content")
+                        st.write(doc['content'][:200] if len(
+                            doc['content']) > 200 else doc['content'])
+                    
+                    if len(doc['content']) > 0:
 
-                st.subheader("Content")
-                st.write(doc['content'][:100] if len(
-                    doc['content']) > 100 else doc['content'])
+                        st.subheader("Text")
+                        text = "\n".join(doc['text'])
+                        st.write(text[:200] if len(text) > 200 else text)
 
-                st.subheader("Text")
-                text = "\n".join(doc['text'])
-                st.write(text[:100] if len(text) > 100 else text)
+                    for k, v in doc.items():
+                        if k in ['text', 'content', 'metadata_storage_path', "metadata_storage_name"]:
+                            continue
+                        if type(v) is list and len(v) > 0:
+                            st.subheader(k.capitalize())
+                            ls = v if len(v) < 5 else v[:5]
+                            st.write(ls)
+                        elif type(v) is str and len(v) > 0:
+                            st.subheader(k.capitalize())
+                            s = v if len(v) < 100 else v[:100]
+                            st.write(s)
+                        
