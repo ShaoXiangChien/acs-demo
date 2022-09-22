@@ -1,0 +1,1 @@
+DefaultEndpointsProtocol=https;AccountName=csericstorage;AccountKey=Z/wgwYQdIkN9C2HqzoX0qeHgAHXeXB/qla4JqFOX1tSs4FCqlIIbdBKIrpM7RRSQLSX+h6W0qDsh+AStUYcXGg==;EndpointSuffix=core.windows.net

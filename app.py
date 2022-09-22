@@ -6,7 +6,7 @@ from services import *
 MODES = ["Simple Query", "Facet Query",
          "Synonym", "Suggestion", "Autocomplete"]
 FIELDS = ['HotelName', 'City', 'Category', 'ParkingIncluded',
-          'Rating', 'Description', 'Address', 'LastRenovationDate']
+          'Rating', 'Description', 'Address', 'StateProvince', 'LastRenovationDate']
 OPERATOR_DT = {">=": "ge", "=": "eq", "<=": "le"}
 COMPLETE_MODE = ['oneTerm', 'twoTerms', 'oneTermWithContext']
 
@@ -36,7 +36,7 @@ if __name__ == "__main__":
             cols = st.columns(3)
 
             filter_field = cols[0].selectbox(
-                "field", ['Rating', 'Address/StateProvince'])
+                "field", ['Rating', 'StateProvince'])
             operator = cols[1].selectbox("operator", [">=", "=", "<="])
             target = cols[2].text_input("target value", "4")
 
@@ -61,9 +61,6 @@ if __name__ == "__main__":
             st.write(
                 f"Total Documents Matching Query: {results.get_count()}")
             result_df = pd.DataFrame([res for res in results])
-            if 'Address' in result_df.columns:
-                result_df['Address'] = result_df.Address.apply(
-                    lambda x: f"{x['StreetAddress']}, {x['City']}, {x['StateProvince']}, {x['Country']}")
             st.dataframe(result_df[select_fields])
 
     elif mode == "Facet Query":
@@ -106,8 +103,20 @@ if __name__ == "__main__":
             results = search_client.search(search_text=search_text, top=5)
             documents = [res for res in results]
 
-            df = pd.DataFrame(documents)
-            st.dataframe(df[FIELDS])
+            if len(documents) > 0:
+                df = pd.DataFrame(documents)
+                if index_mode == "hotels-sample-index-synonym":
+                    df['StateProvince'] = df.Address.apply(
+                        lambda x: x['StateProvince'])
+                    df['StreetAddress'] = df.Address.apply(
+                        lambda x: x['StreetAddress'])
+                    df['City'] = df.Address.apply(lambda x: x['City'])
+
+                df['Address'] = df.apply(
+                    lambda x: f"{x['StreetAddress']}, {x['City']}, {x['StateProvince']}", axis=1)
+                st.dataframe(df[FIELDS])
+            else:
+                st.write("No matching results")
 
     elif mode == "Suggestion":
         st.header(mode)

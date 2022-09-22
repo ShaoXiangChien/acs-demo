@@ -1,0 +1,5 @@
+{
+  "name": "synonymmap1",
+  "format": "solr",
+  "synonyms": "California, Cali => CA\n Los Angeles => LA"
+}
