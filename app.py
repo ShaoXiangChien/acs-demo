@@ -3,6 +3,7 @@ import pandas as pd
 import json
 from streamlit_elements import elements, mui, html
 from services import *
+from PIL import Image
 
 MODES = ["Simple Query", "Facet Query",
          "Synonym", "Suggestion", "Autocomplete", "AI Enrichment"]
@@ -42,6 +43,9 @@ def facet_result_gen():
 
 if __name__ == "__main__":
     st.title("Azure Cognitive Search Demo")
+
+    img = Image.open("./microsoft-logo-4.png")
+    st.sidebar.image(img)
     mode = st.sidebar.selectbox("Choose a mode", MODES)
     searchClient = create_search_client("hotels-sample-index")
     if mode == "Simple Query":
