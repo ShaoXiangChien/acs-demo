@@ -5,7 +5,7 @@ from streamlit_elements import elements, mui, html
 from services import *
 
 MODES = ["Simple Query", "Facet Query",
-         "Synonym", "Suggestion", "Autocomplete"]
+         "Synonym", "Suggestion", "Autocomplete", "AI Enrichment"]
 FIELDS = ['HotelName', 'City', 'Category', 'ParkingIncluded',
           'Rating', 'Description', 'Tags', 'Address', 'StateProvince', 'LastRenovationDate']
 OPERATOR_DT = {">=": "ge", "=": "eq", "<=": "le"}
@@ -189,7 +189,18 @@ if __name__ == "__main__":
         if search_text != "":
             results = search_client.search(search_text=search_text)
             documents = [res for res in results]
-            for doc in documents:
+            for idx, doc in enumerate(documents):
+                st.header(f"Result {idx}")
                 if doc['metadata_storage_name'][-3:] in ['jpg', 'png']:
-                    st.image(image_url_dt[doc['metadata_storage_name']])
-                # for k, v in doc.items():
+                    if image_url_dt.get(doc['metadata_storage_name']):
+                        st.subheader("Image")
+                        st.image(image_url_dt.get(
+                            doc['metadata_storage_name']))
+
+                st.subheader("Content")
+                st.write(doc['content'][:100] if len(
+                    doc['content']) > 100 else doc['content'])
+
+                st.subheader("Text")
+                text = "\n".join(doc['text'])
+                st.write(text[:100] if len(text) > 100 else text)
