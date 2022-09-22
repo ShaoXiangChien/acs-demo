@@ -1,14 +1,32 @@
 import streamlit as st
 import pandas as pd
-
+import json
+from streamlit_elements import elements, mui, html
 from services import *
 
 MODES = ["Simple Query", "Facet Query",
          "Synonym", "Suggestion", "Autocomplete"]
 FIELDS = ['HotelName', 'City', 'Category', 'ParkingIncluded',
-          'Rating', 'Description', 'Address', 'StateProvince', 'LastRenovationDate']
+          'Rating', 'Description', 'Tags', 'Address', 'StateProvince', 'LastRenovationDate']
 OPERATOR_DT = {">=": "ge", "=": "eq", "<=": "le"}
 COMPLETE_MODE = ['oneTerm', 'twoTerms', 'oneTermWithContext']
+with open("./image_url.json") as fh:
+    image_url_dt = json.load(fh)
+
+
+def hotel_component(Name, Rating, Description, City, Tags, search_text):
+    colored_text = f'<span style="font-family:sans-serif; color:red; font-weight: 700;">{search_text}</span>'
+    Name = Name.lower().replace(search_text, colored_text)
+    Description = Description.lower().replace(search_text, colored_text)
+    City = City.lower().replace(search_text, colored_text)
+    for i in range(len(Tags)):
+        Tags[i] = Tags[i].replace(search_text, colored_text)
+    with st.container():
+        st.subheader(Name)
+        st.markdown(f"Rating - {Rating}", unsafe_allow_html=True)
+        st.markdown(f"City - {City}", unsafe_allow_html=True)
+        st.markdown("Tags - " + ", ".join(Tags), unsafe_allow_html=True)
+        st.markdown(Description, unsafe_allow_html=True)
 
 
 @st.cache(allow_output_mutation=True)
@@ -27,10 +45,8 @@ if __name__ == "__main__":
     if mode == "Simple Query":
         st.header(mode)
         with st.form("Search Query"):
-            cols = st.columns(2)
-            search_text = cols[0].text_input("Search Text")
-            select_fields = cols[1].multiselect("Interested Info", FIELDS, [
-                                                'HotelName', 'Rating', 'Description'])
+
+            search_text = st.text_input("Search Text")
 
             st.write("Filter")
             cols = st.columns(3)
@@ -47,13 +63,11 @@ if __name__ == "__main__":
             submitted = st.form_submit_button("Search")
 
         if submitted:
-            select_str = ",".join(select_fields)
             filter_str = f"{filter_field} {OPERATOR_DT[operator]} {target}" if target != "" else ""
             order_str = f"{order_field} {order_mode}"
 
             results = searchClient.search(
                 search_text=search_text,
-                select=select_str,
                 filter=filter_str,
                 order_by=order_str,
                 include_total_count=True,
@@ -61,7 +75,12 @@ if __name__ == "__main__":
             st.write(
                 f"Total Documents Matching Query: {results.get_count()}")
             result_df = pd.DataFrame([res for res in results])
-            st.dataframe(result_df[select_fields])
+            result_df['Address'] = result_df.apply(
+                lambda x: f"{x['StreetAddress']}, {x['City']}, {x['StateProvince']}, {x['Country']}", axis=1)
+            # st.dataframe(result_df[FIELDS])
+            for idx, tmp in result_df.iterrows():
+                hotel_component(tmp['HotelName'], tmp['Rating'],
+                                tmp['Description'], tmp['City'], tmp['Tags'], search_text)
 
     elif mode == "Facet Query":
         st.header(mode)
@@ -126,11 +145,13 @@ if __name__ == "__main__":
                 search_text=search_text,
                 suggester_name="sg"
             )
-
-            res_docs = set([res['text'] for res in results])
             st.subheader("Suggested Text")
-            for res in res_docs:
-                st.write(res)
+            for res in results:
+                st.write(res['text'])
+                hotel = searchClient.get_document(res['HotelId'])
+                df = pd.DataFrame([hotel])
+                df.index = df.HotelId
+                st.dataframe(df)
 
     elif mode == "Autocomplete":
         st.header(mode)
@@ -158,6 +179,17 @@ if __name__ == "__main__":
                 st.write(
                     f"Total Documents Matching Query: {results.get_count()}")
                 result_df = pd.DataFrame([res for res in results])
-                result_df['Address'] = result_df.Address.apply(
-                    lambda x: f"{x['StreetAddress']}, {x['City']}, {x['StateProvince']}, {x['Country']}")
+                result_df['Address'] = result_df.apply(
+                    lambda x: f"{x['StreetAddress']}, {x['City']}, {x['StateProvince']}, {x['Country']}", axis=1)
                 st.dataframe(result_df[FIELDS])
+
+    elif mode == "AI Enrichment":
+        search_client = create_search_client("cogsrch-py-index")
+        search_text = st.text_input("Search Text", "")
+        if search_text != "":
+            results = search_client.search(search_text=search_text)
+            documents = [res for res in results]
+            for doc in documents:
+                if doc['metadata_storage_name'][-3:] in ['jpg', 'png']:
+                    st.image(image_url_dt[doc['metadata_storage_name']])
+                # for k, v in doc.items():
