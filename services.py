@@ -13,9 +13,9 @@ from azure.search.documents.indexes.models import (
 )
 
 # Set the service endpoint and API key from the environment
-serviceName = "cseric"
-adminKey = "JsdazQBtme5kOfjsHSrkKSh2l5pgAejtPRqwGfR2P9AzSeCsWbP7"
-indexName = "hotels-sample-index"
+serviceName = ""
+adminKey = ""
+indexName = ""
 
 # Create an SDK client
 endpoint = "https://{}.search.windows.net/".format(serviceName)
